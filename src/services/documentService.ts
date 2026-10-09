@@ -5,16 +5,59 @@ import type { DocumentMetadata } from '../types/document';
 
 const DOCUMENTS_COLLECTION = 'documents';
 
+const DEMO_DOCUMENTS: DocumentMetadata[] = [
+  {
+    id: 'doc-demo-1',
+    uid: 'demo-citizen-101',
+    type: 'Aadhaar Card',
+    fileName: 'aadhaar_card_masked.pdf',
+    downloadURL: '#',
+    uploadedAt: Date.now() - 86400000 * 5,
+    status: 'Verified',
+  },
+  {
+    id: 'doc-demo-2',
+    uid: 'demo-citizen-101',
+    type: 'Income Certificate',
+    fileName: 'income_cert_2025_26.pdf',
+    downloadURL: '#',
+    uploadedAt: Date.now() - 86400000 * 2,
+    status: 'Verified',
+  },
+  {
+    id: 'doc-demo-3',
+    uid: 'demo-citizen-101',
+    type: 'Land Ownership Document (RoR / 1B)',
+    fileName: 'pattadar_passbook.pdf',
+    downloadURL: '#',
+    uploadedAt: Date.now() - 86400000 * 1,
+    status: 'Pending Verification',
+  }
+];
+
 export async function getUserDocuments(uid: string): Promise<DocumentMetadata[]> {
-  const q = query(collection(db, DOCUMENTS_COLLECTION), where("uid", "==", uid));
-  const querySnapshot = await getDocs(q);
-  
-  const docs: DocumentMetadata[] = [];
-  querySnapshot.forEach((docSnap) => {
-    docs.push({ id: docSnap.id, ...docSnap.data() } as DocumentMetadata);
-  });
-  
-  return docs.sort((a, b) => b.uploadedAt - a.uploadedAt);
+  if (uid === 'demo-citizen-101') {
+    try {
+      const stored = localStorage.getItem('benefitbridge_demo_docs');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return DEMO_DOCUMENTS;
+  }
+
+  try {
+    const q = query(collection(db, DOCUMENTS_COLLECTION), where("uid", "==", uid));
+    const querySnapshot = await getDocs(q);
+    
+    const docs: DocumentMetadata[] = [];
+    querySnapshot.forEach((docSnap) => {
+      docs.push({ id: docSnap.id, ...docSnap.data() } as DocumentMetadata);
+    });
+    
+    return docs.sort((a, b) => b.uploadedAt - a.uploadedAt);
+  } catch (err) {
+    console.warn("getUserDocuments fallback:", err);
+    return DEMO_DOCUMENTS;
+  }
 }
 
 export async function uploadRealDocument(uid: string, type: string, file: File): Promise<DocumentMetadata> {

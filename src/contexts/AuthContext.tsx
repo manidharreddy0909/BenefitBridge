@@ -16,17 +16,40 @@ interface AuthContextType {
   loading: boolean;
   isOnboarded: boolean | null; // null means we are still checking
   signInWithGoogle: () => Promise<void>;
+  signInAsDemo: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshOnboardingStatus: () => Promise<void>;
 }
 
+const DEMO_USER: any = {
+  uid: 'demo-citizen-101',
+  email: 'rajesh.kumar@example.com',
+  displayName: 'Rajesh Kumar',
+  phoneNumber: '+919876543210',
+  photoURL: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      if (typeof window !== 'undefined' && localStorage.getItem('benefitbridge_demo_mode') === 'true') {
+        return DEMO_USER;
+      }
+    } catch {}
+    return null;
+  });
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isOnboarded, setIsOnboarded] = useState<boolean | null>(null);
+  const [isOnboarded, setIsOnboarded] = useState<boolean | null>(() => {
+    try {
+      if (typeof window !== 'undefined' && localStorage.getItem('benefitbridge_demo_mode') === 'true') {
+        return true;
+      }
+    } catch {}
+    return null;
+  });
 
   const checkOnboardingStatus = async (uid: string) => {
     try {
@@ -47,30 +70,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-      if (currentUser) {
-        await checkOnboardingStatus(currentUser.uid);
-      } else {
-        setIsOnboarded(null);
-      }
+    // If in demo mode, populate profile immediately
+    if (localStorage.getItem('benefitbridge_demo_mode') === 'true') {
+      setUser(DEMO_USER);
+      checkOnboardingStatus('demo-citizen-101');
       setLoading(false);
-    });
+      return;
+    }
 
-    return unsubscribe;
+    try {
+      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        if (localStorage.getItem('benefitbridge_demo_mode') === 'true') return;
+        setUser(currentUser);
+        if (currentUser) {
+          await checkOnboardingStatus(currentUser.uid);
+        } else {
+          setIsOnboarded(null);
+        }
+        setLoading(false);
+      }, (err) => {
+        console.warn("Auth state error:", err);
+        setLoading(false);
+      });
+
+      return unsubscribe;
+    } catch {
+      setLoading(false);
+    }
   }, []);
 
   const signInWithGoogle = async () => {
+    localStorage.removeItem('benefitbridge_demo_mode');
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
   };
 
+  const signInAsDemo = async () => {
+    try {
+      localStorage.setItem('benefitbridge_demo_mode', 'true');
+      setUser(DEMO_USER);
+      await checkOnboardingStatus('demo-citizen-101');
+      setIsOnboarded(true);
+      setLoading(false);
+    } catch (e) {
+      console.error("Failed demo login:", e);
+    }
+  };
+
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    localStorage.removeItem('benefitbridge_demo_mode');
+    setUser(null);
+    setUserProfile(null);
+    setIsOnboarded(null);
+    try {
+      await firebaseSignOut(auth);
+    } catch {}
   };
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, isOnboarded, signInWithGoogle, signOut, refreshOnboardingStatus }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, isOnboarded, signInWithGoogle, signInAsDemo, signOut, refreshOnboardingStatus }}>
       {children}
     </AuthContext.Provider>
   );

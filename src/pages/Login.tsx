@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Bot, Mail, Lock, AlertTriangle, Phone, KeyRound } from 'lucide-react';
+import { Bot, Mail, Lock, AlertTriangle, Phone, KeyRound, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Logo } from '../components/Logo';
 import { signInWithEmailAndPassword, signInWithPhoneNumber, RecaptchaVerifier, type ConfirmationResult } from 'firebase/auth';
@@ -10,7 +10,7 @@ import { auth } from '../lib/firebase';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export function Login() {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInAsDemo } = useAuth();
   const navigate = useNavigate();
   
   const [email, setEmail] = useState('');
@@ -295,6 +295,21 @@ export function Login() {
               >
                 <Phone className="w-4 h-4 mr-2 text-emerald-600" />
                 Phone OTP
+              </Button>
+            </div>
+
+            <div className="mt-4">
+              <Button 
+                type="button" 
+                variant="secondary" 
+                className="w-full flex items-center justify-center py-5 bg-gradient-to-r from-emerald-500/15 to-teal-500/15 hover:from-emerald-500/25 hover:to-teal-500/25 text-emerald-900 dark:text-emerald-200 border border-emerald-300/60 dark:border-emerald-700/60 rounded-xl text-sm font-bold shadow-sm transition-all"
+                onClick={async () => {
+                  await signInAsDemo();
+                  navigate('/dashboard');
+                }}
+              >
+                <Sparkles className="w-4 h-4 mr-2 text-emerald-600 dark:text-emerald-400" />
+                Instant Demo Access (Explore Full App)
               </Button>
             </div>
           </div>

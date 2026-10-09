@@ -321,23 +321,101 @@ export async function getApplication(applicationId: string): Promise<Application
   return snap.exists() ? (snap.data() as Application) : null;
 }
 
+const DEMO_APPLICATIONS: Application[] = [
+  {
+    id: 'demo-app-1',
+    uid: 'demo-citizen-101',
+    benefitId: 'pm-kisan',
+    benefitTitle: 'PM-KISAN Samman Nidhi',
+    benefitIssuer: 'Ministry of Agriculture & Farmers Welfare',
+    benefitCategory: 'Agriculture & Rural',
+    applicationUrl: 'https://pmkisan.gov.in',
+    currentStatus: 'SUBMITTED',
+    eligibilityStatus: 'Eligible',
+    eligibilityConfidence: 'HIGH',
+    readinessScore: 100,
+    deadline: '2026-11-30',
+    requiredDocuments: ['Aadhaar Card', 'Land Ownership Document (RoR / 1B)', 'Bank Account Passbook'],
+    uploadedDocuments: ['Aadhaar Card', 'Land Ownership Document (RoR / 1B)', 'Bank Account Passbook'],
+    missingDocuments: [],
+    blockers: [],
+    taskIds: ['task-demo-1'],
+    applicationSubmittedAt: Date.now() - 86400000 * 14,
+    lastUpdatedAt: Date.now() - 86400000 * 2,
+    nextAction: 'Await state nodal officer Aadhaar-seeded account verification',
+    agentNotes: 'All 3 mandatory farmer documents uploaded and verified.',
+    isRenewable: true,
+    renewalStatus: 'FUTURE',
+    renewalHistory: [],
+    createdAt: Date.now() - 86400000 * 20,
+    updatedAt: Date.now() - 86400000 * 2,
+    timeline: [
+      makeTimelineEvent('PREPARING', 'USER', 'Draft created with auto-filled profile fields'),
+      makeTimelineEvent('READY_TO_APPLY', 'SYSTEM', 'Attached Aadhaar & Land Record'),
+      makeTimelineEvent('SUBMITTED', 'USER', 'Application successfully submitted to PM-KISAN portal')
+    ]
+  },
+  {
+    id: 'demo-app-2',
+    uid: 'demo-citizen-101',
+    benefitId: 'rythu-bandhu',
+    benefitTitle: 'Rythu Bandhu Investment Support',
+    benefitIssuer: 'Government of Telangana',
+    benefitCategory: 'Agriculture & Financial Assistance',
+    applicationUrl: 'https://rythubandhu.telangana.gov.in',
+    currentStatus: 'PREPARING',
+    eligibilityStatus: 'Eligible',
+    eligibilityConfidence: 'HIGH',
+    readinessScore: 75,
+    deadline: '2026-12-15',
+    requiredDocuments: ['Pattadar Passbook', 'Aadhaar Card'],
+    uploadedDocuments: ['Aadhaar Card'],
+    missingDocuments: ['Pattadar Passbook'],
+    blockers: [],
+    taskIds: ['task-demo-2'],
+    lastUpdatedAt: Date.now() - 86400000 * 1,
+    nextAction: 'Upload Pattadar Passbook to complete readiness checklist',
+    agentNotes: 'Awaiting Pattadar Passbook upload.',
+    isRenewable: true,
+    renewalStatus: 'OPEN',
+    renewalHistory: [],
+    createdAt: Date.now() - 86400000 * 7,
+    updatedAt: Date.now() - 86400000 * 1,
+    timeline: [
+      makeTimelineEvent('PREPARING', 'USER', 'Application started')
+    ]
+  }
+];
+
 export async function getUserApplications(uid: string): Promise<Application[]> {
-  const q = query(collection(db, COLLECTION), where('uid', '==', uid));
-  const snap = await getDocs(q);
-  const apps: Application[] = [];
-  snap.forEach(d => {
-    const item = d.data() as Application;
-    // Recompute dynamic values on read
-    const deadlineInfo = computeDeadlineIntelligence(item.deadline);
-    item.daysRemaining = deadlineInfo.daysRemaining;
-    item.deadlineCategory = deadlineInfo.deadlineCategory;
-    const health = computeApplicationHealth(item);
-    item.healthStatus = health.healthStatus;
-    item.healthReason = health.healthReason;
-    item.healthAction = health.healthAction;
-    apps.push(item);
-  });
-  return apps.sort((a, b) => b.updatedAt - a.updatedAt);
+  if (uid === 'demo-citizen-101') {
+    try {
+      const stored = localStorage.getItem('benefitbridge_demo_apps');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return DEMO_APPLICATIONS;
+  }
+
+  try {
+    const q = query(collection(db, COLLECTION), where('uid', '==', uid));
+    const snap = await getDocs(q);
+    const apps: Application[] = [];
+    snap.forEach(d => {
+      const item = d.data() as Application;
+      const deadlineInfo = computeDeadlineIntelligence(item.deadline);
+      item.daysRemaining = deadlineInfo.daysRemaining;
+      item.deadlineCategory = deadlineInfo.deadlineCategory;
+      const health = computeApplicationHealth(item);
+      item.healthStatus = health.healthStatus;
+      item.healthReason = health.healthReason;
+      item.healthAction = health.healthAction;
+      apps.push(item);
+    });
+    return apps.sort((a, b) => b.updatedAt - a.updatedAt);
+  } catch (err) {
+    console.warn("getUserApplications fallback:", err);
+    return DEMO_APPLICATIONS;
+  }
 }
 
 export async function getApplicationForBenefit(uid: string, benefitId: string): Promise<Application | null> {

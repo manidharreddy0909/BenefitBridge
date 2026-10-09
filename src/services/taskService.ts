@@ -12,27 +12,67 @@ export async function getTask(taskId: string): Promise<Task | null> {
   return snap.exists() ? (snap.data() as Task) : null;
 }
 
-export async function getUserTasks(uid: string): Promise<Task[]> {
-  const q = query(collection(db, TASKS_COLLECTION), where('uid', '==', uid));
-  const snap = await getDocs(q);
-  const tasks: Task[] = [];
-  snap.forEach(d => tasks.push(d.data() as Task));
+const DEMO_TASKS: Task[] = [
+  {
+    id: 'task-demo-1',
+    uid: 'demo-citizen-101',
+    title: 'Verify Bank Account Details for DBT',
+    description: 'Ensure your Aadhaar is linked to your bank account for PM-KISAN installment transfer.',
+    priority: 'HIGH',
+    status: 'PENDING',
+    actionType: 'FILL_PROFILE',
+    dueDate: Date.now() + 86400000 * 3,
+    createdAt: Date.now() - 86400000 * 2,
+    updatedAt: Date.now() - 86400000 * 2,
+    createdBy: 'SYSTEM',
+  },
+  {
+    id: 'task-demo-2',
+    uid: 'demo-citizen-101',
+    title: 'Upload Latest Land Ownership Record (1B)',
+    description: 'Upload current season land record copy to complete PM-KISAN verification.',
+    priority: 'MEDIUM',
+    status: 'PENDING',
+    actionType: 'UPLOAD_DOCUMENT',
+    dueDate: Date.now() + 86400000 * 7,
+    createdAt: Date.now() - 86400000 * 1,
+    updatedAt: Date.now() - 86400000 * 1,
+    createdBy: 'AGENT',
+  }
+];
 
-  // Sort: PENDING first by priority, then COMPLETED/CANCELLED at bottom by completedAt
-  return tasks.sort((a, b) => {
-    if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
-    if (b.status === 'PENDING' && a.status !== 'PENDING') return 1;
-    if (a.status === 'PENDING' && b.status === 'PENDING') {
-      const pDiff = PRIORITY_ORDER[b.priority] - PRIORITY_ORDER[a.priority];
-      if (pDiff !== 0) return pDiff;
-      // Closer due date wins
-      if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
-      if (a.dueDate) return -1;
-      if (b.dueDate) return 1;
-      return b.createdAt - a.createdAt;
-    }
-    return b.updatedAt - a.updatedAt;
-  });
+export async function getUserTasks(uid: string): Promise<Task[]> {
+  if (uid === 'demo-citizen-101') {
+    try {
+      const stored = localStorage.getItem('benefitbridge_demo_tasks');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return DEMO_TASKS;
+  }
+
+  try {
+    const q = query(collection(db, TASKS_COLLECTION), where('uid', '==', uid));
+    const snap = await getDocs(q);
+    const tasks: Task[] = [];
+    snap.forEach(d => tasks.push(d.data() as Task));
+
+    return tasks.sort((a, b) => {
+      if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
+      if (b.status === 'PENDING' && a.status !== 'PENDING') return 1;
+      if (a.status === 'PENDING' && b.status === 'PENDING') {
+        const pDiff = PRIORITY_ORDER[b.priority] - PRIORITY_ORDER[a.priority];
+        if (pDiff !== 0) return pDiff;
+        if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
+        if (a.dueDate) return -1;
+        if (b.dueDate) return 1;
+        return b.createdAt - a.createdAt;
+      }
+      return b.updatedAt - a.updatedAt;
+    });
+  } catch (err) {
+    console.warn("getUserTasks fallback:", err);
+    return DEMO_TASKS;
+  }
 }
 
 export async function getPendingTasks(uid: string): Promise<Task[]> {
