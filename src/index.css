@@ -3,8 +3,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-heading: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-sans: "Inter", "Noto Sans Telugu", "Noto Sans Devanagari", system-ui, sans-serif;
+  --font-heading: "Plus Jakarta Sans", "Noto Sans Telugu", "Noto Sans Devanagari", system-ui, sans-serif;
   
   --color-primary-50: #effdf5;
   --color-primary-100: #d1fae5;
@@ -42,7 +42,7 @@
 }
 
 :root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', 'Noto Sans Telugu', 'Noto Sans Devanagari', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -52,7 +52,7 @@
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading {
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Noto Sans Telugu', 'Noto Sans Devanagari', system-ui, sans-serif;
   letter-spacing: -0.02em;
 }
 

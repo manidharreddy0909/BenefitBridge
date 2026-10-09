@@ -52,6 +52,12 @@ export interface Benefit {
 
 // 🟢 Eligibility Model 🟢
 
+export interface CriterionDetail {
+  text: string;
+  messageKey?: string;
+  params?: Record<string, string | number>;
+}
+
 export interface EligibilityResult {
   benefitId: string;
   status: EligibilityStatus;
@@ -60,4 +66,9 @@ export interface EligibilityResult {
   missingCriteria: string[];    // Criteria that cannot be checked (data missing from profile)
   unmetCriteria: string[];      // Criteria the user definitively fails
   missingDocuments: string[];   // Required docs user hasn't uploaded
+  details?: {
+    satisfied?: CriterionDetail[];
+    missing?: CriterionDetail[];
+    unmet?: CriterionDetail[];
+  };
 }

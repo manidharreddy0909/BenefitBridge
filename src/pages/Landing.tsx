@@ -13,6 +13,7 @@ import { Reveal } from '../components/ui/Reveal';
 import { HeroVisual } from '../components/landing/HeroVisual';
 import { DocIntelligenceVisual } from '../components/landing/DocIntelligenceVisual';
 import { AgentWorkflowVisual } from '../components/landing/AgentWorkflowVisual';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 export function Landing() {
   const navigate = useNavigate();
@@ -79,6 +80,7 @@ export function Landing() {
             </div>
 
             <div className="flex items-center gap-4">
+              <LanguageSwitcher variant="compact" />
               <button
                 onClick={toggleTheme}
                 className="p-2.5 rounded-full text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-800 transition-all duration-300 hover:rotate-12"

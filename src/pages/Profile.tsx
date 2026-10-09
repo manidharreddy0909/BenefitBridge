@@ -213,7 +213,9 @@ export function Profile() {
                               <option value="Illiterate">Illiterate (Not Studied)</option>
                               <option value="Primary">Primary Education (1st - 5th)</option>
                               <option value="Middle">Middle School (6th - 8th)</option>
+                              <option value="9th">9th Pass</option>
                               <option value="10th">10th Pass (High School)</option>
+                              <option value="11th">11th Pass</option>
                               <option value="12th">12th Pass (Intermediate)</option>
                               <option value="Undergraduate">Undergraduate Student</option>
                               <option value="Graduate">Graduate</option>
@@ -256,6 +258,9 @@ export function Profile() {
                             <select name="employmentStatus" value={profile?.employmentStatus || ''} onChange={handleChange} className="block w-full px-3 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 dark:text-white">
                               <option value="">Select Status</option>
                               <option value="Student">Student</option><option value="Unemployed">Unemployed</option><option value="Employed">Employed</option><option value="Self-Employed">Self-Employed</option>
+                              <option value="Farmer">Farmer</option>
+                              <option value="Daily Wage Worker">Daily Wage Worker</option>
+                              <option value="Homemaker">Homemaker</option>
                             </select>
                           </div>
                           <Input label="Income Source" name="incomeSource" value={profile?.incomeSource || ''} onChange={handleChange} placeholder="e.g. Agriculture, Salary" />

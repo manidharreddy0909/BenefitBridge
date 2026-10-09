@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 // ─── Visual Status Pipeline ───────────────────────────────────────────────────
 
@@ -56,6 +57,7 @@ const STATUS_COLORS: Record<string, string> = {
 export function ApplicationDetail() {
   const { applicationId } = useParams<{ applicationId: string }>();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [app, setApp] = useState<Application | null>(null);
@@ -279,6 +281,14 @@ export function ApplicationDetail() {
                 <h3 className="text-xl font-bold font-heading">Did you submit your application on the official portal?</h3>
                 <p className="text-slate-300 text-sm mt-1 max-w-2xl">
                   We cannot automatically assume external government portal submissions. Tell BenefitBridge so your AI agent can monitor progress, calculate verification milestones, and track deadlines.
+                </p>
+              </div>
+
+              {/* Anti-fraud notice */}
+              <div className="p-3 bg-emerald-950/60 border border-emerald-800/80 rounded-xl text-xs text-emerald-300 flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  {t('common.free_apply_notice', { defaultValue: 'Government schemes are free to apply. Do not pay anyone to apply. Only use the official links shown here.' })}
                 </p>
               </div>
 

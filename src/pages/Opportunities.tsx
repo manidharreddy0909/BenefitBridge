@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getRankedBenefits } from '../services/prioritizationEngine';
 import type { RankedOpportunity } from '../services/prioritizationEngine';
+import type { CriterionDetail } from '../types/benefit';
 import {
   createApplication, getApplicationForBenefit, transitionApplication,
 } from '../services/applicationService';
@@ -14,6 +15,14 @@ import {
 import { Layout } from '../components/Layout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { useTranslation } from 'react-i18next';
+import {
+  getLocalizedBenefitTitle,
+  getLocalizedBenefitDescription,
+  getLocalizedBenefitAmount,
+  isTranslationReviewed,
+} from '../data/benefitsI18n';
+import { ReadAloudButton } from '../components/ReadAloudButton';
 
 function StatusBadge({ status }: { status: RankedOpportunity['result']['status'] }) {
   const styles = {
@@ -103,6 +112,8 @@ function MatchScoreRing({ score, label }: { score: number; label: RankedOpportun
 export function Opportunities() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language || 'en';
   const [opportunities, setOpportunities] = useState<RankedOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'All' | 'Eligible' | 'Potentially Eligible' | 'Not Eligible'>('All');
@@ -321,16 +332,31 @@ export function Opportunities() {
                   </div>
 
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-snug font-heading">{opp.benefit.title}</h2>
+                    <div className="flex items-start justify-between gap-2">
+                      <h2 className="text-lg font-bold text-slate-900 dark:text-white leading-snug font-heading flex-1">
+                        {getLocalizedBenefitTitle(opp.benefit, currentLang)}
+                      </h2>
+                      <ReadAloudButton
+                        text={`${getLocalizedBenefitTitle(opp.benefit, currentLang)}. ${getLocalizedBenefitDescription(opp.benefit, currentLang)}. ${getLocalizedBenefitAmount(opp.benefit, currentLang)}`}
+                        className="shrink-0"
+                      />
+                    </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{opp.benefit.issuer}</p>
+                    {currentLang !== 'en' && !isTranslationReviewed(opp.benefit.id, currentLang) && (
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 italic mt-0.5">
+                        {t('common.official_site_note', { defaultValue: 'Translated — please confirm at the official site before applying.' })}
+                      </p>
+                    )}
                   </div>
 
-                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{opp.benefit.description}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    {getLocalizedBenefitDescription(opp.benefit, currentLang)}
+                  </p>
 
                   <div className="flex flex-wrap gap-3 text-sm">
                     <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 rounded-lg border border-emerald-100 dark:border-emerald-800/50 font-medium">
                       <BadgeIndianRupee className="w-4 h-4" />
-                      {opp.benefit.benefitAmount}
+                      {getLocalizedBenefitAmount(opp.benefit, currentLang)}
                     </div>
                     <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 font-medium">
                       <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500" />
@@ -344,19 +370,22 @@ export function Opportunities() {
 
                   {(opp.result.satisfiedCriteria.length > 0 || opp.result.missingCriteria.length > 0 || opp.result.unmetCriteria.length > 0) && (
                     <div className="mt-3 space-y-1.5 border-t border-slate-100 dark:border-slate-800/50 pt-3">
-                      {opp.result.satisfiedCriteria.map((c, i) => (
+                      {(opp.result.details?.satisfied ?? opp.result.satisfiedCriteria.map((c): CriterionDetail => ({ text: c }))).map((c, i) => (
                         <div key={i} className="flex items-start gap-2 text-xs text-emerald-700 dark:text-emerald-400">
-                          <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {c}
+                          <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                          {c.messageKey ? t(`eligibility.${c.messageKey}`, c.params || {}) : c.text}
                         </div>
                       ))}
-                      {opp.result.missingCriteria.map((c, i) => (
+                      {(opp.result.details?.missing ?? opp.result.missingCriteria.map((c): CriterionDetail => ({ text: c }))).map((c, i) => (
                         <div key={i} className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
-                          <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {c}
+                          <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                          {c.messageKey ? t(`eligibility.${c.messageKey}`, c.params || {}) : c.text}
                         </div>
                       ))}
-                      {opp.result.unmetCriteria.map((c, i) => (
+                      {(opp.result.details?.unmet ?? opp.result.unmetCriteria.map((c): CriterionDetail => ({ text: c }))).map((c, i) => (
                         <div key={i} className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400">
-                          <XCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {c}
+                          <XCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                          {c.messageKey ? t(`eligibility.${c.messageKey}`, c.params || {}) : c.text}
                         </div>
                       ))}
                     </div>
@@ -426,12 +455,19 @@ export function Opportunities() {
                     {selectedOpp.benefit.category}
                   </span>
                 </div>
-                <h2 className="text-xl font-bold text-white font-heading leading-tight">{selectedOpp.benefit.title}</h2>
+                <h2 className="text-xl font-bold text-white font-heading leading-tight">{getLocalizedBenefitTitle(selectedOpp.benefit, currentLang)}</h2>
                 <p className="text-xs text-slate-300 mt-1">{selectedOpp.benefit.issuer}</p>
               </div>
 
               {/* Modal Content */}
               <div className="p-6 space-y-5 max-h-[65vh] overflow-y-auto">
+                {/* Anti-fraud notice */}
+                <div className="p-3 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="leading-relaxed font-medium">
+                    {t('common.free_apply_notice', { defaultValue: 'Government schemes are free to apply. Do not pay anyone to apply. Only use the official links shown here.' })}
+                  </p>
+                </div>
                 {/* Readiness summary */}
                 <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-100 dark:border-slate-800">
                   <div>

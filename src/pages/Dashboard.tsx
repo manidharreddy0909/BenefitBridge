@@ -20,6 +20,8 @@ import type { Task } from '../types/task';
 import { PRIORITY_COLORS } from '../types/task';
 import { Layout } from '../components/Layout';
 import { cn } from '../lib/utils';
+import { ReadAloudButton } from '../components/ReadAloudButton';
+import { VoiceInputButton } from '../components/VoiceInputButton';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -181,8 +183,17 @@ export function Dashboard() {
         
         return (
           <div key={action.id} className={`flex gap-3 my-4 animate-fade-in-up ${isUserMsg ? 'justify-end' : ''}`}>
-             <div className={`p-4 rounded-2xl max-w-[85%] shadow-sm dark:shadow-none transition-transform hover:scale-[1.01] ${isUserMsg ? 'bg-emerald-600 text-white rounded-br-sm font-medium' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none'}`}>
-                <ReactMarkdown>{action.content}</ReactMarkdown>
+             <div className={`p-4 rounded-2xl max-w-[85%] shadow-sm dark:shadow-none transition-transform hover:scale-[1.01] ${isUserMsg ? 'bg-emerald-600 text-white rounded-br-sm font-medium' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-sm leading-relaxed'}`}>
+                <div className="flex justify-between items-start gap-2">
+                  <div className="prose prose-sm dark:prose-invert max-w-none flex-1">
+                    <ReactMarkdown>{action.content}</ReactMarkdown>
+                  </div>
+                  {!isUserMsg && (
+                    <div className="shrink-0 pt-0.5">
+                      <ReadAloudButton text={action.content} />
+                    </div>
+                  )}
+                </div>
              </div>
           </div>
         );
@@ -246,9 +257,12 @@ export function Dashboard() {
                 </p>
                 <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
                   <span className="text-xs text-slate-500">Deadline: {topAction.benefit.deadline}</span>
-                  <Button size="sm" onClick={() => navigate('/opportunities')} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs hover:-translate-y-0.5 transition-transform shadow-md hover:shadow-emerald-500/20">
-                    Review & Apply <ArrowRight className="w-3 h-3 ml-1" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <ReadAloudButton text={`${topAction.benefit.title}. ${topAction.benefit.description}`} />
+                    <Button size="sm" onClick={() => navigate('/opportunities')} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs hover:-translate-y-0.5 transition-transform shadow-md hover:shadow-emerald-500/20">
+                      Review & Apply <ArrowRight className="w-3 h-3 ml-1" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -453,6 +467,7 @@ export function Dashboard() {
                   className="w-full pl-4 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-white dark:placeholder-slate-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner disabled:opacity-50 text-sm"
                 />
               </div>
+              <VoiceInputButton onTranscript={(txt) => setInput(prev => prev ? `${prev} ${txt}` : txt)} />
               <Button 
                 type="submit" 
                 disabled={sending || !input.trim()} 

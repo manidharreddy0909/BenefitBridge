@@ -12,6 +12,8 @@ export interface UserProfile {
   cityTownVillage?: string;
   pinCode?: string;
   contactNumber?: string;
+  preferredLanguage?: string; // 'en' | 'te' | 'hi' etc.
+  simpleMode?: boolean;
 
   // EDUCATION
   educationLevel?: string;
@@ -46,6 +48,19 @@ export interface UserProfile {
   minorityStatus?: string;
   specialEligibilityCategories?: string[]; // e.g. Farmer, Ex-Serviceman
   studentStatus?: string;
+  landHoldingAcres?: number;
+  rationCardType?: string; // e.g. BPL, AAY, Priority Household
+  isWidowOrSenior?: boolean;
+  isPregnantOrLactating?: boolean;
+  numberOfChildren?: number;
+
+  // NOTIFICATION & SETTINGS
+  notificationPrefs?: {
+    sms?: boolean;
+    whatsapp?: boolean;
+    push?: boolean;
+    quietHours?: boolean;
+  };
 
   createdAt: number;
   updatedAt: number;

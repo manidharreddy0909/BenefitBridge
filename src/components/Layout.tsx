@@ -9,22 +9,25 @@ import {
 import { cn } from '../lib/utils';
 import { useTheme } from '../contexts/ThemeContext';
 import { Logo } from './Logo';
+import { LanguageSwitcher } from './LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, userProfile, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Opportunities', path: '/opportunities', icon: Activity },
-    { name: 'Applications', path: '/applications', icon: FolderKanban },
-    { name: 'Tasks', path: '/tasks', icon: ListTodo },
-    { name: 'Document Vault', path: '/vault', icon: ShieldCheck },
-    { name: 'Audit Log', path: '/audit', icon: Activity },
-    { name: 'Profile', path: '/profile', icon: User },
+    { name: t('nav.dashboard', { defaultValue: 'Dashboard' }), path: '/dashboard', icon: LayoutDashboard },
+    { name: t('nav.opportunities', { defaultValue: 'Opportunities' }), path: '/opportunities', icon: Activity },
+    { name: t('nav.applications', { defaultValue: 'Applications' }), path: '/applications', icon: FolderKanban },
+    { name: t('nav.tasks', { defaultValue: 'Tasks' }), path: '/tasks', icon: ListTodo },
+    { name: t('nav.vault', { defaultValue: 'Document Vault' }), path: '/vault', icon: ShieldCheck },
+    { name: t('nav.audit', { defaultValue: 'Audit Log' }), path: '/audit', icon: Activity },
+    { name: t('nav.profile', { defaultValue: 'Profile' }), path: '/profile', icon: User },
   ];
 
   const handleSignOut = async () => {
@@ -49,6 +52,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <span className="font-bold text-slate-800 dark:text-slate-100 font-heading text-lg">BenefitBridge</span>
         </div>
         <div className="flex items-center gap-3">
+          <LanguageSwitcher variant="compact" />
           <button className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
             <Bell className="w-5 h-5" />
           </button>
@@ -150,17 +154,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</p>
             </div>
           </div>
+          <div className="mb-2">
+            <LanguageSwitcher className="w-full justify-between" variant="full" />
+          </div>
           <button
             onClick={toggleTheme}
             className="mb-2 flex items-center justify-center gap-2 w-full py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 transition-colors"
           >
-            {theme === 'dark' ? <><Sun className="w-4 h-4" /> Light Mode</> : <><Moon className="w-4 h-4" /> Dark Mode</>}
+            {theme === 'dark' ? <><Sun className="w-4 h-4" /> {t('common.lightMode', { defaultValue: 'Light Mode' })}</> : <><Moon className="w-4 h-4" /> {t('common.darkMode', { defaultValue: 'Dark Mode' })}</>}
           </button>
           <button
             onClick={handleSignOut}
             className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-red-50 hover:text-red-600 hover:border-red-100 border border-slate-200 dark:border-slate-800 transition-colors"
           >
-            <LogOut className="w-4 h-4" /> Sign Out</button>
+            <LogOut className="w-4 h-4" /> {t('nav.signOut', { defaultValue: 'Sign Out' })}</button>
         </div>
       </aside>
 

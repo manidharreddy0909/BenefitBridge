@@ -7,7 +7,21 @@ const SYSTEM_INSTRUCTION = `You are the BenefitBridge Autonomous Case Manager. Y
 Always execute real tools to fetch data before answering. Do NOT guess or hallucinate.
 Available tools: get_user_profile, find_benefits, check_eligibility, check_documents, list_applications, create_application, record_external_submission, list_pending_tasks, check_deadlines, get_renewals, get_next_best_action.
 Never fabricate reference numbers, deadlines, or approval statuses. Be concise, clear, helpful, and empathetic. Answer EXACTLY what the user asks based on the tool data.
+Always cite the official source for any scheme information. Always advise the user to confirm details at the official website or their nearest CSC / Gram Panchayat office before taking action.
 CRITICAL: NEVER output raw JSON, tool response objects, or code blocks in your final message. Always translate the tool data into natural, human-readable conversational text.`;
+
+/**
+ * Returns the Gemini API key for use with GoogleGenerativeAI.
+ * In development: reads from VITE_GEMINI_API_KEY (local .env.local only).
+ * In production: the key must be set in Firebase Functions config (server-side only).
+ * Never ship VITE_GEMINI_API_KEY in a production build.
+ */
+async function resolveApiKey(): Promise<string | null> {
+  const devKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (devKey && devKey.length > 10) return devKey;
+  // In production, the key is server-side only. The user must have the Cloud Function deployed.
+  return null;
+}
 
 export class AgentOrchestrator {
   private uid: string;
@@ -57,29 +71,29 @@ export class AgentOrchestrator {
         console.warn('Run creation note:', e);
       }
 
-      // Check if Gemini API is configured
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      
-      if (!apiKey || apiKey.length < 10) {
-        await this.logAction('ERROR', "AI Engine Offline: Please provide a valid Gemini API Key in your `.env.local` file.");
-        await updateAgentSession(this.uid, { status: 'IDLE' });
-        this.session.status = 'IDLE';
-        return;
-      }
-
       try {
-        // Dynamically find a supported model to avoid 404s on experimental keys
-        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-        const modelsData = await modelsRes.json();
-        const availableModels = modelsData.models
-          ?.filter((m: any) => m.supportedGenerationMethods.includes('generateContent'))
-          ?.map((m: any) => m.name.replace('models/', '')) || ['gemini-1.5-flash'];
+        const apiKey = await resolveApiKey();
         
-        let selectedModel = 'gemini-1.5-flash';
-        if (!availableModels.includes(selectedModel) && availableModels.length > 0) {
-          // If standard flash isn't available (e.g. internal keys), use the first valid model
-          selectedModel = availableModels[0];
+        if (!apiKey) {
+          await this.logAction('ERROR', "AI Engine Offline: No API key configured. In development, add VITE_GEMINI_API_KEY to .env.local. In production, deploy the geminiProxy Cloud Function with the key set via: firebase functions:config:set gemini.api_key=\"YOUR_KEY\"");
+          await updateAgentSession(this.uid, { status: 'IDLE' });
+          this.session.status = 'IDLE';
+          return;
         }
+
+        // Dynamically find a supported model
+        let selectedModel = 'gemini-1.5-flash';
+        try {
+          const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+          const modelsData = await modelsRes.json();
+          const availableModels = modelsData.models
+            ?.filter((m: any) => m.supportedGenerationMethods.includes('generateContent'))
+            ?.map((m: any) => m.name.replace('models/', '')) || ['gemini-1.5-flash'];
+          
+          if (!availableModels.includes(selectedModel) && availableModels.length > 0) {
+            selectedModel = availableModels[0];
+          }
+        } catch (_) { /* ignore model listing errors */ }
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
@@ -109,7 +123,6 @@ export class AgentOrchestrator {
                 toolResult = { error: toolErr.message || 'Tool execution failed' };
               }
 
-              // Gemini requires the response to be a JSON Object (Protobuf Struct), not an Array or Primitive
               const safeResponse = (typeof toolResult === 'object' && toolResult !== null && !Array.isArray(toolResult))
                 ? toolResult
                 : { result: toolResult };
@@ -130,7 +143,6 @@ export class AgentOrchestrator {
         }
 
         if (text) {
-          // Fallback regex to strip any hallucinated JSON blocks the model might leak
           let cleanText = text.replace(/\{"check_eligibility_response"\s*:\s*\{.*?\}\}/gs, '');
           cleanText = cleanText.replace(/\{"result"\s*:\s*\[.*?\]\}/gs, '');
           cleanText = cleanText.replace(/```json\s*.*?\s*```/gs, '');
@@ -141,16 +153,14 @@ export class AgentOrchestrator {
           await this.logAction('ERROR', "I couldn't generate a clear response. Please try rephrasing your request.", undefined, 'AGENT');
         }
       } catch (geminiError: any) {
-        let errorMessage = geminiError.message || 'Invalid API Key or Quota Exceeded. Please check your Gemini configuration.';
-        if (apiKey) {
-          errorMessage = errorMessage.replace(new RegExp(apiKey, 'g'), '[REDACTED_API_KEY]');
-        }
+        let errorMessage = geminiError.message || 'AI service error. Please try again.';
         
-        // Make rate limits friendly!
         if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('quota')) {
           const delayMatch = errorMessage.match(/retryDelay.*?(\d+)s/);
           const waitTime = delayMatch ? delayMatch[1] + ' seconds' : 'a minute';
-          await this.logAction('ERROR', `Google AI Rate Limit Reached! You are using the Free Tier, which allows a limited number of requests per minute. Please wait ${waitTime} before trying again.`);
+          await this.logAction('ERROR', `Google AI Rate Limit Reached! Please wait ${waitTime} before trying again.`);
+        } else if (errorMessage.includes('sign in') || errorMessage.includes('ID token')) {
+          await this.logAction('ERROR', 'Please sign in to use the AI assistant.');
         } else {
           await this.logAction('ERROR', `AI Engine Error: ${errorMessage}`);
         }
@@ -161,14 +171,7 @@ export class AgentOrchestrator {
 
     } catch (error: any) {
       console.error("Agent Loop Error:", error);
-      
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      let errorMessage = error.message || 'Please try again.';
-      if (apiKey) {
-        errorMessage = errorMessage.replace(new RegExp(apiKey, 'g'), '[REDACTED_API_KEY]');
-      }
-      
-      await this.logAction('ERROR', `Error processing request: ${errorMessage}`);
+      await this.logAction('ERROR', `Error processing request: ${error.message || 'Please try again.'}`);
       await updateAgentSession(this.uid, { status: 'IDLE' });
       this.session.status = 'IDLE';
     }

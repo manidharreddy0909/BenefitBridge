@@ -71,6 +71,10 @@ export async function processDocumentForAutofill(
       };
     }
 
+    // NOTE: Autofill uses the Gemini API directly with the dev key (VITE_GEMINI_API_KEY).
+    // In production, this should be routed through the geminiProxy Cloud Function.
+    // For the multimodal (image) use case, inline data must be proxied differently.
+    // This is acceptable for local development; do NOT set VITE_GEMINI_API_KEY in production.
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     const isGeminiAvailable = !!apiKey && apiKey.startsWith('AIzaSy');
 
