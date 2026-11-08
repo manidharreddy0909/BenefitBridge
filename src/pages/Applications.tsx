@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { useTranslation } from 'react-i18next';
+import { getBenefitI18n } from '../data/benefitsI18n';
 
 const STATUS_BADGE_COLORS: Record<ApplicationStatus, string> = {
   DISCOVERED: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
@@ -38,21 +40,42 @@ type TabFilter = 'All' | 'Active' | 'Pending Action' | 'Under Review' | 'Approve
 export function Applications() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabFilter>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const apps = await getUserApplications(user.uid);
-    setApplications(apps);
-    setLoading(false);
-  };
+    try {
+      const apps = await getUserApplications(user.uid);
+      setApplications(apps);
+    } catch (err) {
+      console.warn("Failed to load applications:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    loadData();
+    let cancelled = false;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    getUserApplications(user.uid).then(apps => {
+      if (!cancelled) {
+        setApplications(apps);
+        setLoading(false);
+      }
+    }).catch(err => {
+      console.warn("Error fetching applications:", err);
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => { cancelled = true; };
   }, [user]);
 
   const filtered = applications.filter(app => {
@@ -112,40 +135,40 @@ export function Applications() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800/50">
-                  Lifecycle Command Center
+                  {t('ui.applications.commandCenter', 'Lifecycle Command Center')}
                 </span>
               </div>
               <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white font-heading">
-                Benefit Applications
+                {t('ui.applications.pageTitle', 'Benefit Applications')}
               </h1>
               <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
-                Track, monitor, verify, and renew every government subsidy & scholarship you pursue.
+                {t('ui.applications.trackSubtitle', 'Track, monitor, verify, and renew every government subsidy & scholarship you pursue.')}
               </p>
             </div>
             <button
               onClick={() => navigate('/opportunities')}
               className="flex items-center gap-2 px-5 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold rounded-2xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-all shadow-md shrink-0"
             >
-              <PlusCircle className="w-4 h-4" /> Discover New Benefits
+              <PlusCircle className="w-4 h-4" /> {t('ui.applications.discoverNew', 'Discover New Benefits')}
             </button>
           </div>
 
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 relative z-10">
             <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-100 dark:border-slate-800">
-              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">Active In-Flight</div>
+              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t('ui.applications.activeInFlight', 'Active In-Flight')}</div>
               <div className="text-2xl font-black text-slate-900 dark:text-white mt-0.5">{activeCount}</div>
             </div>
             <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-2xl border border-blue-100 dark:border-blue-900/40">
-              <div className="text-xs font-semibold text-blue-700 dark:text-blue-300">Under Review</div>
+              <div className="text-xs font-semibold text-blue-700 dark:text-blue-300">{t('ui.applications.underReview', 'Under Review')}</div>
               <div className="text-2xl font-black text-blue-700 dark:text-blue-400 mt-0.5">{underReviewCount}</div>
             </div>
             <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 rounded-2xl border border-emerald-100 dark:border-emerald-900/40">
-              <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Completed & Benefited</div>
+              <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">{t('ui.applications.completedBenefited', 'Completed & Benefited')}</div>
               <div className="text-2xl font-black text-emerald-700 dark:text-emerald-400 mt-0.5">{completedCount}</div>
             </div>
             <div className="p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-2xl border border-amber-100 dark:border-amber-900/40">
-              <div className="text-xs font-semibold text-amber-700 dark:text-amber-300">Renewals Due</div>
+              <div className="text-xs font-semibold text-amber-700 dark:text-amber-300">{t('ui.applications.renewalsDue', 'Renewals Due')}</div>
               <div className="text-2xl font-black text-amber-700 dark:text-amber-400 mt-0.5">{renewalDueCount}</div>
             </div>
           </div>
@@ -159,7 +182,7 @@ export function Applications() {
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search by scheme, issuer, ref..."
+                placeholder={t('ui.applications.searchPlaceholder', 'Search by scheme, issuer, ref...')}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -170,24 +193,33 @@ export function Applications() {
               onClick={loadData}
               className="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shrink-0"
             >
-              <RefreshCw className="w-3.5 h-3.5" /> Refresh Tracking
+              <RefreshCw className="w-3.5 h-3.5" /> {t('ui.applications.refreshTracking', 'Refresh Tracking')}
             </button>
           </div>
 
           {/* Filter Tabs */}
           <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-x-auto gap-1">
-            {(['All', 'Active', 'Pending Action', 'Under Review', 'Approved', 'Completed', 'Rejected', 'Renewal Due'] as TabFilter[]).map(tab => (
+            {([
+              { key: 'All', label: t('ui.applications.tabAll', 'All') },
+              { key: 'Active', label: t('ui.applications.tabActive', 'Active') },
+              { key: 'Pending Action', label: t('ui.applications.tabPending', 'Pending Action') },
+              { key: 'Under Review', label: t('ui.applications.tabUnderReview', 'Under Review') },
+              { key: 'Approved', label: t('ui.applications.tabApproved', 'Approved') },
+              { key: 'Completed', label: t('ui.applications.tabCompleted', 'Completed') },
+              { key: 'Rejected', label: t('ui.applications.tabRejected', 'Rejected') },
+              { key: 'Renewal Due', label: t('ui.applications.tabRenewalDue', 'Renewal Due') },
+            ] as const).map(tab => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as any)}
                 className={cn(
                   'whitespace-nowrap px-4 py-2 rounded-xl text-xs font-semibold transition-all shrink-0',
-                  activeTab === tab
+                  activeTab === tab.key
                     ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm dark:shadow-none'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 )}
               >
-                {tab}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -198,19 +230,19 @@ export function Applications() {
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm dark:shadow-none border border-slate-200 dark:border-slate-800 p-16 text-center">
             <FileText className="w-16 h-16 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2 font-heading">
-              {applications.length === 0 ? 'No applications created yet' : 'No matching applications'}
+              {applications.length === 0 ? t('ui.applications.noAppsCreated', 'No applications created yet') : t('ui.applications.noMatchingApps', 'No matching applications')}
             </h2>
             <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 max-w-sm mx-auto">
               {applications.length === 0
-                ? 'Browse the Discovery Engine to find benefit schemes matching your profile and start an application.'
-                : 'Try adjusting your search terms or filter tabs to find your applications.'}
+                ? t('ui.applications.noAppsDesc', 'Browse the Discovery Engine to find benefit schemes matching your profile and start an application.')
+                : t('ui.applications.noMatchingDesc', 'Try adjusting your search terms or filter tabs to find your applications.')}
             </p>
             {applications.length === 0 && (
               <button
                 onClick={() => navigate('/opportunities')}
                 className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-2xl hover:bg-emerald-700 transition-all shadow-md text-sm"
               >
-                Browse Matched Opportunities
+                {t('ui.applications.browseMatched', 'Browse Matched Opportunities')}
               </button>
             )}
           </div>
@@ -243,6 +275,10 @@ function ApplicationCard({
   index: number;
   onClick: () => void;
 }) {
+  const { t, i18n } = useTranslation();
+  const currentLang = i18n.language || 'en';
+  const localized = getBenefitI18n(app.benefitId, currentLang);
+  const displayTitle = localized?.titleExplanation ? `${app.benefitTitle} (${localized.titleExplanation})` : app.benefitTitle;
   const activeBlockers = (app.blockers || []).filter(b => !b.resolvedAt);
   const statusBadgeColor = STATUS_BADGE_COLORS[app.currentStatus] || 'bg-slate-100 text-slate-800';
 
@@ -285,13 +321,13 @@ function ApplicationCard({
 
             {isBlocked && (
               <span className="text-[11px] font-bold text-red-600 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 px-2.5 py-1 rounded-full flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3" /> {activeBlockers.length} Action Needed
+                <AlertTriangle className="w-3 h-3" /> {activeBlockers.length} {t('ui.applications.actionNeeded', 'Action Needed')}
               </span>
             )}
 
             {app.isRenewable && (
               <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800/50 px-2.5 py-1 rounded-full">
-                🔄 Renewable
+                🔄 {t('ui.applications.renewable', 'Renewable')}
               </span>
             )}
           </div>
@@ -299,7 +335,7 @@ function ApplicationCard({
           {/* Title & Issuer */}
           <div>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white font-heading leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-              {app.benefitTitle}
+              {displayTitle}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{app.benefitIssuer}</p>
           </div>
@@ -308,7 +344,7 @@ function ApplicationCard({
           <div className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-100 dark:border-slate-800/80 flex items-start gap-2.5">
             <Clock className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Next Recommended Action</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">{t('ui.applications.nextAction', 'Next Recommended Action')}</span>
               <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-snug">{app.nextAction}</span>
             </div>
           </div>
@@ -325,7 +361,11 @@ function ApplicationCard({
                 />
               </div>
               <span className="text-[11px] text-slate-400 font-medium shrink-0">
-                {app.uploadedDocuments?.length || 0}/{app.requiredDocuments.length} docs ready
+                {t('ui.applications.docsReady', {
+                  uploaded: app.uploadedDocuments?.length || 0,
+                  total: app.requiredDocuments.length,
+                  defaultValue: `${app.uploadedDocuments?.length || 0}/${app.requiredDocuments.length} docs ready`
+                })}
               </span>
             </div>
           )}
@@ -334,7 +374,7 @@ function ApplicationCard({
         {/* Right Side: Readiness & Deadlines */}
         <div className="md:w-56 shrink-0 flex flex-col justify-between items-start md:items-end md:text-right border-t md:border-t-0 pt-4 md:pt-0 border-slate-100 dark:border-slate-800">
           <div className="space-y-1 w-full">
-            <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Readiness Score</div>
+            <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider">{t('ui.applications.readinessScore', 'Readiness Score')}</div>
             <div className="text-3xl font-black text-slate-900 dark:text-white font-heading">
               {app.readinessScore}%
             </div>
@@ -343,24 +383,24 @@ function ApplicationCard({
           <div className="mt-4 space-y-1.5 text-xs text-slate-500 dark:text-slate-400 w-full">
             <div className="flex md:justify-end items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span>Deadline: <strong className="text-slate-700 dark:text-slate-200">{app.deadline}</strong></span>
+              <span>{t('ui.applications.deadline', 'Deadline')}: <strong className="text-slate-700 dark:text-slate-200">{app.deadline}</strong></span>
             </div>
             {app.applicationSubmittedAt && (
               <div className="flex md:justify-end items-center gap-1.5 text-[11px]">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Submitted: {new Date(app.applicationSubmittedAt).toLocaleDateString('en-IN')}</span>
+                <span>{t('ui.applications.submitted', 'Submitted')}: {new Date(app.applicationSubmittedAt).toLocaleDateString('en-IN')}</span>
               </div>
             )}
             {app.isRenewable && app.nextRenewalDate && (
               <div className="flex md:justify-end items-center gap-1.5 text-[11px] text-purple-600 dark:text-purple-400">
-                <span>Renewal window: {app.nextRenewalDate}</span>
+                <span>{t('ui.applications.renewalWindow', 'Renewal window')}: {app.nextRenewalDate}</span>
               </div>
             )}
           </div>
 
           <div className="mt-5 w-full flex md:justify-end">
             <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">
-              View Workspace <ArrowRight className="w-3.5 h-3.5" />
+              {t('common.viewDetails', 'View Details')} <ArrowRight className="w-3.5 h-3.5" />
             </span>
           </div>
         </div>

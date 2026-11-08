@@ -11,6 +11,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Logo } from './Logo';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
+import { VoiceGuide } from './VoiceGuide';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { user, userProfile, signOut } = useAuth();
@@ -95,13 +96,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 onClick={toggleTheme}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all font-medium text-left w-full"
               >
-                {theme === 'dark' ? <><Sun className="w-5 h-5 text-amber-500" /> Switch to Light Mode</> : <><Moon className="w-5 h-5 text-slate-500" /> Switch to Dark Mode</>}
+                {theme === 'dark' ? <><Sun className="w-5 h-5 text-amber-500" /> {t('common.lightMode', { defaultValue: 'Light Mode' })}</> : <><Moon className="w-5 h-5 text-slate-500" /> {t('common.darkMode', { defaultValue: 'Dark Mode' })}</>}
               </button>
               <button
                 onClick={handleSignOut}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all font-medium text-left w-full"
               >
-                <LogOut className="w-5 h-5" /> Sign Out</button>
+                <LogOut className="w-5 h-5" /> {t('nav.signOut', { defaultValue: 'Sign Out' })}
+              </button>
             </div>
           </motion.div>
         )}
@@ -118,7 +120,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 px-4 py-6 flex flex-col gap-2 overflow-y-auto">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Main Menu</div>
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">
+            {t('nav.menu', { defaultValue: 'Main Menu' })}
+          </div>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -184,6 +188,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </motion.div>
         </div>
       </main>
+
+      {/* Floating voice guidance helper — visible on all pages */}
+      <VoiceGuide />
     </div>
   );
 }

@@ -22,6 +22,13 @@ import { Layout } from '../components/Layout';
 import { cn } from '../lib/utils';
 import { ReadAloudButton } from '../components/ReadAloudButton';
 import { VoiceInputButton } from '../components/VoiceInputButton';
+import { useTranslation } from 'react-i18next';
+import {
+  getLocalizedBenefitTitle,
+  getLocalizedBenefitDescription,
+  getLocalizedBenefitAmount,
+} from '../data/benefitsI18n';
+
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -39,6 +46,7 @@ const itemVariants = {
 export function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [session, setSession] = useState<AgentSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
@@ -243,24 +251,24 @@ export function Dashboard() {
               <div className="relative z-10">
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 group-hover:animate-pulse">
-                    Top Recommended Benefit
+                    {t('ui.dashboard.topBenefit')}
                   </span>
                   <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    {topAction.result.confidenceLevel} Match
+                    {topAction.result.confidenceLevel} {t('ui.dashboard.match')}
                   </span>
                 </div>
                 <h3 className="font-bold text-base text-slate-900 dark:text-white mb-1 leading-snug group-hover:text-emerald-600 transition-colors">
-                  {topAction.benefit.title}
+                  {getLocalizedBenefitTitle(topAction.benefit, i18n.language)}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
-                  {topAction.benefit.issuer} Â· {topAction.benefit.benefitAmount}
+                  {topAction.benefit.issuer} · {getLocalizedBenefitAmount(topAction.benefit, i18n.language)}
                 </p>
                 <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-xs text-slate-500">Deadline: {topAction.benefit.deadline}</span>
+                  <span className="text-xs text-slate-500">{t('ui.dashboard.deadline')}: {topAction.benefit.deadline}</span>
                   <div className="flex items-center gap-2">
-                    <ReadAloudButton text={`${topAction.benefit.title}. ${topAction.benefit.description}`} />
+                    <ReadAloudButton text={`${getLocalizedBenefitTitle(topAction.benefit, i18n.language)}. ${getLocalizedBenefitDescription(topAction.benefit, i18n.language)}`} />
                     <Button size="sm" onClick={() => navigate('/opportunities')} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs hover:-translate-y-0.5 transition-transform shadow-md hover:shadow-emerald-500/20">
-                      Review & Apply <ArrowRight className="w-3 h-3 ml-1" />
+                      {t('ui.dashboard.reviewApply')} <ArrowRight className="w-3 h-3 ml-1" />
                     </Button>
                   </div>
                 </div>
@@ -274,7 +282,7 @@ export function Dashboard() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <ListTodo className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">High-Priority Task</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('ui.dashboard.highPriorityTask')}</span>
                 </div>
                 <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded uppercase", PRIORITY_COLORS[topTask.priority])}>
                   {topTask.priority}
@@ -283,7 +291,7 @@ export function Dashboard() {
               <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">{topTask.title}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{topTask.description}</p>
               <Button size="sm" variant="outline" onClick={() => navigate('/tasks')} className="w-full text-xs hover:border-blue-500 hover:text-blue-600 transition-colors">
-                Open Tasks Workspace
+                {t('ui.dashboard.openTasks')}
               </Button>
             </motion.div>
           )}
@@ -293,9 +301,9 @@ export function Dashboard() {
             <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-lg transition-shadow">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                  <Activity className="w-4 h-4 text-emerald-500" /> Upcoming Renewals
+                  <Activity className="w-4 h-4 text-emerald-500" /> {t('ui.dashboard.upcomingRenewals')}
                 </span>
-                <span className="text-xs font-bold text-emerald-600">{upcomingRenewals.length} Active</span>
+                <span className="text-xs font-bold text-emerald-600">{upcomingRenewals.length} {t('ui.dashboard.active')}</span>
               </div>
               <div className="space-y-3">
                 {upcomingRenewals.map(app => (
@@ -309,7 +317,7 @@ export function Dashboard() {
                       )}>
                         {app.renewalStatus.replace('_', ' ')}
                       </span>
-                      <span className="text-xs text-slate-500 font-medium">Due: {app.renewalDeadline || 'Upcoming'}</span>
+                      <span className="text-xs text-slate-500 font-medium">{t('ui.dashboard.due')}: {app.renewalDeadline || t('ui.dashboard.upcoming')}</span>
                     </div>
                     {/* Visual Urgency Timeline Bar */}
                     <div className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-full mt-2 mb-2 overflow-hidden">
@@ -330,7 +338,7 @@ export function Dashboard() {
           {/* Quick Stats Overview */}
           <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm mt-auto group hover:shadow-lg transition-shadow">
              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">At a Glance</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t('ui.dashboard.atAGlance')}</span>
              </div>
              
              {/* Profile Completeness Ring */}
@@ -355,19 +363,19 @@ export function Dashboard() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white">Profile Completeness</div>
-                  <div className="text-[10px] text-slate-500">Complete it to unlock more matches.</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t('ui.dashboard.profileCompleteness')}</div>
+                  <div className="text-[10px] text-slate-500">{t('ui.dashboard.completeForMatches')}</div>
                 </div>
              </div>
 
              <div className="grid grid-cols-2 gap-2 text-center">
                 <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:border-emerald-300 transition-colors hover:-translate-y-0.5" onClick={() => navigate('/applications')}>
                    <div className="text-xl font-black text-slate-900 dark:text-white mb-1 group-hover:scale-110 transition-transform">{stats.apps}</div>
-                   <div className="text-[10px] font-bold text-slate-500 uppercase">Tracked</div>
+                   <div className="text-[10px] font-bold text-slate-500 uppercase">{t('ui.dashboard.tracked')}</div>
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:border-emerald-300 transition-colors hover:-translate-y-0.5" onClick={() => navigate('/vault')}>
                    <div className="text-xl font-black text-slate-900 dark:text-white mb-1 group-hover:scale-110 transition-transform">{stats.docs}</div>
-                   <div className="text-[10px] font-bold text-slate-500 uppercase">Documents</div>
+                   <div className="text-[10px] font-bold text-slate-500 uppercase">{t('ui.dashboard.documents')}</div>
                 </div>
              </div>
           </motion.div>
@@ -392,14 +400,14 @@ export function Dashboard() {
                 )}
               </div>
               <div>
-                <h2 className="font-bold text-slate-900 dark:text-white leading-tight">Agent Workspace</h2>
+                <h2 className="font-bold text-slate-900 dark:text-white leading-tight">{t('ui.dashboard.agentWorkspace')}</h2>
                 <p className="text-xs font-medium text-emerald-600 flex items-center gap-1">
                   {session?.status === 'PLANNING' ? (
-                    <><Loader2 className="w-3 h-3 animate-spin" /> Planningâ€¦</>
+                    <><Loader2 className="w-3 h-3 animate-spin" /> {t('ui.dashboard.planning')}</>
                   ) : session?.status === 'EXECUTING' ? (
-                    <><Loader2 className="w-3 h-3 animate-spin" /> Executing toolsâ€¦</>
+                    <><Loader2 className="w-3 h-3 animate-spin" /> {t('ui.dashboard.executing')}</>
                   ) : (
-                    <><CheckCircle2 className="w-3 h-3" /> Online &amp; Ready</>
+                    <><CheckCircle2 className="w-3 h-3" /> {t('ui.dashboard.online')}</>
                   )}
                 </p>
               </div>
@@ -410,7 +418,7 @@ export function Dashboard() {
                 className="text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
                 title="Reset conversation"
               >
-                <RotateCcw className="w-3.5 h-3.5" /> Clear Chat
+                <RotateCcw className="w-3.5 h-3.5" /> {t('ui.dashboard.clearChat')}
               </button>
             </div>
           </div>
@@ -421,17 +429,17 @@ export function Dashboard() {
               <div className="h-full flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 space-y-4 py-8">
                 <Logo className="w-14 h-14 text-slate-300 dark:text-slate-700" />
                 <p className="text-center max-w-sm text-sm">
-                  I'm your autonomous case manager. Tell me what you need, and I'll inspect your profile, check your documents, and find eligible benefits for you.
+                  {t('ui.dashboard.agentIntro')}
                 </p>
                 <div className="flex flex-wrap justify-center gap-2 mt-4">
-                  <button onClick={() => handleSend(undefined, "What benefits am I eligible for?")} className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-all shadow-sm">
-                    "What benefits am I eligible for?"
+                  <button onClick={() => handleSend(undefined, t('ui.dashboard.q1'))} className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-all shadow-sm">
+                    "{t('ui.dashboard.q1')}"
                   </button>
-                  <button onClick={() => handleSend(undefined, "What are my uploaded documents as of now?")} className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-all shadow-sm">
-                    "What are my uploaded documents as of now?"
+                  <button onClick={() => handleSend(undefined, t('ui.dashboard.q2'))} className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-all shadow-sm">
+                    "{t('ui.dashboard.q2')}"
                   </button>
-                  <button onClick={() => handleSend(undefined, "What are my active tracked applications?")} className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-all shadow-sm">
-                    "Check my applications"
+                  <button onClick={() => handleSend(undefined, t('ui.dashboard.q3'))} className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-400 hover:text-emerald-600 transition-all shadow-sm">
+                    "{t('ui.dashboard.q3')}"
                   </button>
                 </div>
               </div>
@@ -462,7 +470,7 @@ export function Dashboard() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask your case manager to check documents, find benefits..."
+                  placeholder={t('ui.dashboard.inputPlaceholder')}
                   disabled={sending}
                   className="w-full pl-4 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:text-white dark:placeholder-slate-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all shadow-inner disabled:opacity-50 text-sm"
                 />
@@ -477,7 +485,7 @@ export function Dashboard() {
               </Button>
             </form>
             <p className="text-[11px] text-center text-slate-500 dark:text-slate-400 mt-3 font-medium">
-              BenefitBridge Agent autonomously inspects your real Document Vault and Firestore database.
+              {t('ui.dashboard.agentDisclaimer')}
             </p>
           </div>
         </div>

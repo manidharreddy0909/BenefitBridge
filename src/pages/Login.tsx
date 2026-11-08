@@ -90,6 +90,7 @@ export function Login() {
       await confirmationResultRef.current.confirm(otp);
       navigate('/dashboard');
     } catch (err: any) {
+      console.warn("OTP verification error:", err);
       setError('Incorrect or expired OTP. Please try again.');
     } finally {
       setLoading(false);

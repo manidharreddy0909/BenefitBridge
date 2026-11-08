@@ -23,7 +23,7 @@ function getGeminiKey() {
   try {
     const config = functions.config();
     if (config.gemini && config.gemini.api_key) return config.gemini.api_key;
-  } catch (_) { /* no config in emulator */ }
+  } catch { /* no config in emulator */ }
   return null;
 }
 
@@ -40,7 +40,7 @@ async function verifyIdToken(authHeader) {
   const idToken = authHeader.split('Bearer ')[1];
   try {
     return await admin.auth().verifyIdToken(idToken);
-  } catch (e) {
+  } catch {
     const err = new Error('Invalid or expired Firebase ID token');
     err.status = 401;
     throw err;

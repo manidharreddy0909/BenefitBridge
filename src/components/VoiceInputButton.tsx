@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,56 +10,63 @@ interface VoiceInputButtonProps {
 export function VoiceInputButton({ onTranscript, className = '' }: VoiceInputButtonProps) {
   const { i18n } = useTranslation();
   const [isListening, setIsListening] = useState(false);
-  const [supported, setSupported] = useState(false);
-  const [recognition, setRecognition] = useState<any>(null);
+  const [supported] = useState(() => {
+    return typeof window !== 'undefined' &&
+      !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  });
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
+    if (!supported) return;
+
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    if (SpeechRecognition) {
-      setSupported(true);
-      const recognizer = new SpeechRecognition();
-      recognizer.continuous = false;
-      recognizer.interimResults = false;
+    const recognizer = new SpeechRecognition();
+    recognizer.continuous = false;
+    recognizer.interimResults = false;
 
-      const langCode = i18n.language?.split('-')[0] || 'en';
-      const langMap: Record<string, string> = {
-        te: 'te-IN',
-        hi: 'hi-IN',
-        en: 'en-IN',
-      };
-      recognizer.lang = langMap[langCode] || 'en-IN';
+    const langCode = i18n.language?.split('-')[0] || 'en';
+    const langMap: Record<string, string> = {
+      te: 'te-IN',
+      hi: 'hi-IN',
+      en: 'en-IN',
+    };
+    recognizer.lang = langMap[langCode] || 'en-IN';
 
-      recognizer.onresult = (event: any) => {
-        const transcript = event.results[0]?.[0]?.transcript;
-        if (transcript) {
-          onTranscript(transcript);
-        }
-        setIsListening(false);
-      };
+    recognizer.onresult = (event: any) => {
+      const transcript = event.results[0]?.[0]?.transcript;
+      if (transcript) {
+        onTranscript(transcript);
+      }
+      setIsListening(false);
+    };
 
-      recognizer.onerror = () => {
-        setIsListening(false);
-      };
+    recognizer.onerror = () => {
+      setIsListening(false);
+    };
 
-      recognizer.onend = () => {
-        setIsListening(false);
-      };
+    recognizer.onend = () => {
+      setIsListening(false);
+    };
 
-      setRecognition(recognizer);
-    } else {
-      setSupported(false);
-    }
-  }, [i18n.language, onTranscript]);
+    recognitionRef.current = recognizer;
+
+    return () => {
+      try {
+        recognizer.abort();
+      } catch {}
+    };
+  }, [i18n.language, onTranscript, supported]);
 
   const toggleListening = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!recognition) return;
+    const recognizer = recognitionRef.current;
+    if (!recognizer) return;
 
     if (isListening) {
-      recognition.stop();
+      recognizer.stop();
       setIsListening(false);
     } else {
       try {
@@ -69,8 +76,8 @@ export function VoiceInputButton({ onTranscript, className = '' }: VoiceInputBut
           hi: 'hi-IN',
           en: 'en-IN',
         };
-        recognition.lang = langMap[langCode] || 'en-IN';
-        recognition.start();
+        recognizer.lang = langMap[langCode] || 'en-IN';
+        recognizer.start();
         setIsListening(true);
       } catch {
         setIsListening(false);

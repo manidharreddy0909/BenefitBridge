@@ -10,12 +10,11 @@ import { Layout } from '../components/Layout';
 import { Search, Upload, FileText, CheckCircle2, ShieldCheck, Trash2, AlertTriangle, FolderLock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export function DocumentVault() {
-    
-
-  
-const { user } = useAuth();
+  const { user } = useAuth();
+  const { t } = useTranslation();
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -143,11 +142,15 @@ const { user } = useAuth();
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-200 dark:border-slate-800 p-6 md:p-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-60 pointer-events-none" />
           <div className="relative z-10">
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2">Document Vault</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2">
+              {t('ui.vault.title', 'Document Vault')}
+            </h1>
             <p className="text-slate-500 dark:text-slate-400 max-w-xl mb-4">
-              Upload your documents once. We securely encrypt them and use Document Intelligence to extract missing profile information so you never have to type it twice.</p>
+              {t('ui.vault.subtitle', 'Upload your documents once. We securely encrypt them and use Document Intelligence to extract missing profile information so you never have to type it twice.')}
+            </p>
             <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
-               <ShieldCheck className="w-4 h-4 text-emerald-600" /> End-to-end Encrypted</div>
+               <ShieldCheck className="w-4 h-4 text-emerald-600" /> {t('ui.vault.encrypted', 'End-to-end Encrypted')}
+            </div>
           </div>
         </div>
 
@@ -159,17 +162,20 @@ const { user } = useAuth();
             {/* UPLOAD FORM */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-200 dark:border-slate-800 p-6 sticky top-6">
               <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <Upload className="w-5 h-5 text-emerald-600" /> Add Document</h2>
+                <Upload className="w-5 h-5 text-emerald-600" /> {t('ui.vault.addDoc', 'Add Document')}
+              </h2>
               
               <form onSubmit={handleUpload} className="space-y-5">
                 <div className="space-y-1 relative" ref={dropdownRef}>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Document Type</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                    {t('ui.vault.docType', 'Document Type')}
+                  </label>
                   <div className="relative">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                     <input
                       type="text"
                       className="block w-full pl-9 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm shadow-sm dark:shadow-none"
-                      placeholder="Search document type..."
+                      placeholder={t('ui.vault.searchDocType', 'Search document type...')}
                       value={searchQuery}
                       onChange={(e) => {
                         setSearchQuery(e.target.value);
@@ -213,7 +219,7 @@ const { user } = useAuth();
                       <FileText className="mx-auto h-8 w-8 text-slate-400 group-hover:text-emerald-500 transition-colors" />
                       <div className="flex text-sm text-slate-600 dark:text-slate-300 justify-center">
                         <label htmlFor="file-upload" className="relative cursor-pointer bg-white dark:bg-slate-900 rounded-md font-medium text-emerald-600 hover:text-emerald-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-emerald-500">
-                          <span>Upload a file</span>
+                          <span>{t('ui.vault.chooseFile', 'Upload a file')}</span>
                           <input id="file-upload" name="file-upload" type="file" className="sr-only" accept="image/*,.pdf" required onChange={(e) => setFile(e.target.files?.[0] || null)} />
                         </label>
                       </div>
@@ -223,7 +229,8 @@ const { user } = useAuth();
                 </div>
 
                 <Button type="submit" className="w-full shadow-md dark:shadow-none" isLoading={uploading} disabled={!selectedType || selectedType !== searchQuery || !file}>
-                  Upload Document</Button>
+                  {uploading ? t('ui.vault.uploading', 'Uploading & Analyzing...') : t('ui.vault.uploadBtn', 'Upload Document')}
+                </Button>
                 
                 {autofillMessage && (
                   <motion.div 
@@ -253,18 +260,21 @@ const { user } = useAuth();
           {/* RIGHT COLUMN: VAULT & REVIEW MODAL */}
           <div className="md:col-span-2 space-y-6">
             
-
-
             {/* VAULTED DOCUMENTS */}
             <div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <ShieldCheck className="w-6 h-6 text-slate-400" /> Your Vault</h2>
+                <ShieldCheck className="w-6 h-6 text-slate-400" /> {t('ui.vault.yourDocuments', 'Your Vault')}
+              </h2>
               
               {documents.length === 0 ? (
                 <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 border-dashed p-12 text-center flex flex-col items-center">
                   <FolderLock className="w-16 h-16 text-slate-200 dark:text-slate-700 mb-4 mx-auto" />
-                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">Your vault is empty</h3>
-                  <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-6">Upload your identity, education, or income documents to unlock more automated applications.</p>
+                  <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                    {t('ui.vault.noDocuments', 'Your vault is empty')}
+                  </h3>
+                  <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-6">
+                    {t('ui.vault.noDocumentsDesc', 'Upload your identity, education, or income documents to unlock more automated applications.')}
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

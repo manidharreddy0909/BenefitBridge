@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Layout } from '../components/Layout';
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { useTranslation } from 'react-i18next';
 
 // ─── Icon map for action types ────────────────────────────────────────────────
 
@@ -24,7 +25,9 @@ const ACTION_ICONS: Record<TaskActionType, React.ReactNode> = {
   CHECK_PORTAL_STATUS: <ExternalLink className="w-4 h-4" />,
   RESOLVE_BLOCKER:     <AlertTriangle className="w-4 h-4" />,
   VERIFY_DEADLINE:     <BellRing className="w-4 h-4" />,
-  RENEWAL_REMINDER:    <BellRing className="w-4 h-4" />, PREPARE_RENEWAL:     <ClipboardCheck className="w-4 h-4" />, GENERIC:             <Activity className="w-4 h-4" />,
+  RENEWAL_REMINDER:    <BellRing className="w-4 h-4" />,
+  PREPARE_RENEWAL:     <ClipboardCheck className="w-4 h-4" />,
+  GENERIC:             <Activity className="w-4 h-4" />,
 };
 
 const ACTION_LABELS: Record<TaskActionType, string> = {
@@ -35,7 +38,9 @@ const ACTION_LABELS: Record<TaskActionType, string> = {
   CHECK_PORTAL_STATUS: 'Check Portal',
   RESOLVE_BLOCKER:     'Resolve Blocker',
   VERIFY_DEADLINE:     'Deadline Alert',
-  RENEWAL_REMINDER:    'Renewal Reminder', PREPARE_RENEWAL:     'Prepare Renewal', GENERIC:             'Action Required',
+  RENEWAL_REMINDER:    'Renewal Reminder',
+  PREPARE_RENEWAL:     'Prepare Renewal',
+  GENERIC:             'Action Required',
 };
 
 // ─── Task Card ────────────────────────────────────────────────────────────────
@@ -53,15 +58,15 @@ function TaskCard({
   onDismiss: (id: string) => void;
   onNavigate: (task: Task) => void;
 }) {
-    
-
-  
-const [completing, setCompleting] = useState(false);
+  const { t } = useTranslation();
+  const [completing, setCompleting] = useState(false);
   const isDone = task.status === 'COMPLETED' || task.status === 'CANCELLED';
 
-  const daysUntilDue = task.dueDate
-    ? Math.ceil((task.dueDate - Date.now()) / (1000 * 60 * 60 * 24))
-    : null;
+  const daysUntilDue = useMemo(() => {
+    return task.dueDate
+      ? Math.ceil((task.dueDate - Date.now()) / (1000 * 60 * 60 * 24))
+      : null;
+  }, [task.dueDate]);
   const isOverdue = daysUntilDue !== null && daysUntilDue < 0;
   const isUrgent  = daysUntilDue !== null && daysUntilDue <= 3;
 
@@ -105,7 +110,8 @@ const [completing, setCompleting] = useState(false);
             </span>
             {task.createdBy === 'AGENT' && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-                <Bot className="w-3 h-3" /> Agent</span>
+                <Bot className="w-3 h-3" /> {t('ui.tasks.agent', 'Agent')}
+              </span>
             )}
             {isDone && (
               <span className={cn(
@@ -140,9 +146,9 @@ const [completing, setCompleting] = useState(false);
             )}>
               <Clock className="w-3 h-3" />
               {isOverdue
-                ? `Overdue by ${Math.abs(daysUntilDue!)} day${Math.abs(daysUntilDue!) === 1 ? '' : 's'}`
-                : daysUntilDue === 0 ? 'Due today'
-                : `Due in ${daysUntilDue} day${daysUntilDue === 1 ? '' : 's'}`}
+                ? t('ui.tasks.overdues', { n: Math.abs(daysUntilDue!), defaultValue: `Overdue by ${Math.abs(daysUntilDue!)} days` })
+                : daysUntilDue === 0 ? t('ui.tasks.dueToday', 'Due today')
+                : t('ui.tasks.dueIns', { n: daysUntilDue, defaultValue: `Due in ${daysUntilDue} days` })}
               {' '}({new Date(task.dueDate).toLocaleDateString('en-IN')})
             </p>
           )}
@@ -166,7 +172,7 @@ const [completing, setCompleting] = useState(false);
               onClick={handleComplete}
               disabled={completing}
               className="p-2 rounded-xl border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-all"
-              title="Mark complete"
+              title={t('ui.tasks.markComplete', 'Mark complete')}
             >
               {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             </button>
@@ -174,7 +180,7 @@ const [completing, setCompleting] = useState(false);
             <button
               onClick={() => onDismiss(task.id)}
               className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-red-500 hover:border-red-200 transition-all"
-              title="Dismiss"
+              title={t('ui.tasks.dismiss', 'Dismiss')}
             >
               <XCircle className="w-4 h-4" />
             </button>
@@ -188,24 +194,43 @@ const [completing, setCompleting] = useState(false);
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export function Tasks() {
-    
-
-  
-const { user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'PENDING' | 'COMPLETED' | 'ALL'>('PENDING');
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
     if (!user) return;
     setLoading(true);
-    const all = await getUserTasks(user.uid);
-    setTasks(all);
-    setLoading(false);
+    getUserTasks(user.uid).then(all => {
+      setTasks(all);
+      setLoading(false);
+    }).catch(err => {
+      console.warn("Error loading tasks:", err);
+      setLoading(false);
+    });
   }, [user]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    getUserTasks(user.uid).then(all => {
+      if (!cancelled) {
+        setTasks(all);
+        setLoading(false);
+      }
+    }).catch(err => {
+      console.warn("Error loading tasks:", err);
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [user]);
 
   const handleComplete = async (taskId: string) => {
     await updateTaskStatus(taskId, 'COMPLETED');
@@ -239,58 +264,61 @@ const { user } = useAuth();
           <div className="absolute top-0 right-0 w-56 h-56 bg-amber-50 rounded-full blur-3xl -mr-16 -mt-16 opacity-70 pointer-events-none" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-1">Tasks</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-1">
+                {t('ui.tasks.pageTitle', 'Tasks')}
+              </h1>
               <p className="text-slate-500 dark:text-slate-400 text-sm">
-                Actions generated by your AI agent based on real application state.</p>
+                {t('ui.tasks.pageSubtitle', 'Actions generated by your AI agent based on real application state.')}
+              </p>
             </div>
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={load}
                 className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
               >
-                <RefreshCw className="w-4 h-4" /> Refresh</button>
+                <RefreshCw className="w-4 h-4" /> {t('ui.tasks.refresh', 'Refresh')}
+              </button>
               <button
                 onClick={() => navigate('/dashboard')}
                 className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-xl hover:bg-slate-700 transition-all shadow-md dark:shadow-none"
               >
-                <Bot className="w-4 h-4" /> Ask Agent</button>
+                <Bot className="w-4 h-4" /> {t('ui.tasks.askAgent', 'Ask Agent')}
+              </button>
             </div>
           </div>
 
           {/* Stats */}
           <div className="flex flex-wrap gap-3 mt-6 relative z-10">
             <div className="px-4 py-2 bg-red-50 border border-red-200 rounded-xl text-sm font-semibold text-red-700">
-              <span className="text-2xl font-black">{critical.length}</span> Critical</div>
+              <span className="text-2xl font-black">{critical.length}</span> {t('ui.tasks.critical', 'Critical')}
+            </div>
             <div className="px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm font-semibold text-amber-700">
-              <span className="text-2xl font-black">{pending.length}</span> Pending</div>
+              <span className="text-2xl font-black">{pending.length}</span> {t('ui.tasks.pending', 'Pending')}
+            </div>
             <div className="px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm font-semibold text-emerald-700">
-              <span className="text-2xl font-black">{completed.length}</span> Completed</div>
+              <span className="text-2xl font-black">{completed.length}</span> {t('ui.tasks.completed', 'Completed')}
+            </div>
           </div>
-        </div>
-
-        {/* Agent tip */}
-        <div className="flex items-start gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm">
-          <Bot className="w-5 h-5 shrink-0 mt-0.5 text-emerald-600" />
-          <div>
-            <strong>Agent-Driven Tasks:</strong> Tasks are created automatically when the agent detects missing documents,
-            incomplete profiles, blocked applications, or upcoming deadlines. Ask the agent{' '}
-            <em>"What should I do next?"</em> or<em>"Scan my applications"</em> to trigger fresh task generation.</div>
         </div>
 
         {/* Filter tabs */}
         <div className="flex gap-2">
-          {(['PENDING', 'COMPLETED', 'ALL'] as const).map(f => (
+          {([
+            { key: 'PENDING', label: t('ui.tasks.filterPending', 'Pending'), count: pending.length },
+            { key: 'COMPLETED', label: t('ui.tasks.filterCompleted', 'Completed'), count: completed.length },
+            { key: 'ALL', label: t('ui.tasks.filterAll', 'All Tasks'), count: tasks.length },
+          ] as const).map(f => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
+              key={f.key}
+              onClick={() => setFilter(f.key as any)}
               className={cn(
                 'px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all',
-                filter === f
+                filter === f.key
                   ? 'bg-slate-900 text-white border-slate-900 shadow'
                   : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-400'
               )}
             >
-              {f} ({f === 'PENDING' ? pending.length : f === 'COMPLETED' ? completed.length : tasks.length})
+              {f.label} ({f.count})
             </button>
           ))}
         </div>
@@ -304,7 +332,7 @@ const { user } = useAuth();
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm dark:shadow-none border border-slate-200 dark:border-slate-800 p-16 text-center">
             <CheckCircle2 className="w-14 h-14 text-slate-200 dark:text-slate-700 mx-auto mb-4" />
             <h3 className="text-lg font-bold text-slate-700 dark:text-slate-200 mb-2">
-              {filter === 'PENDING' ? 'No pending tasks!' : 'No tasks here yet.'}
+              {t('ui.tasks.noTasks', 'No tasks here.')}
             </h3>
             <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mx-auto">
               {filter === 'PENDING'

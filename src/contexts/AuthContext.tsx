@@ -41,7 +41,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return null;
   });
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try {
+      if (typeof window !== 'undefined' && localStorage.getItem('benefitbridge_demo_mode') === 'true') {
+        return false;
+      }
+    } catch {}
+    return true;
+  });
   const [isOnboarded, setIsOnboarded] = useState<boolean | null>(() => {
     try {
       if (typeof window !== 'undefined' && localStorage.getItem('benefitbridge_demo_mode') === 'true') {
@@ -70,16 +77,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // If in demo mode, populate profile immediately
+    let unsubscribe: (() => void) | undefined;
+
     if (localStorage.getItem('benefitbridge_demo_mode') === 'true') {
-      setUser(DEMO_USER);
-      checkOnboardingStatus('demo-citizen-101');
-      setLoading(false);
+      getUserProfile('demo-citizen-101').then(profile => {
+        setUserProfile(profile);
+      });
       return;
     }
 
     try {
-      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
         if (localStorage.getItem('benefitbridge_demo_mode') === 'true') return;
         setUser(currentUser);
         if (currentUser) {
@@ -92,11 +100,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.warn("Auth state error:", err);
         setLoading(false);
       });
-
-      return unsubscribe;
     } catch {
       setLoading(false);
     }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const signInWithGoogle = async () => {
